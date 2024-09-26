@@ -18,6 +18,19 @@ use wry::{
     WebViewBuilder,
 };
 
+#[cfg(any(
+    target_os = "linux",
+    target_os = "dragonfly",
+    target_os = "freebsd",
+    target_os = "netbsd",
+    target_os = "openbsd",
+  ))]
+use {
+    tao::platform::unix::WindowExtUnix,
+    wry::WebViewBuilderExtUnix,
+    gtk::prelude::{Cast, ContainerExt},
+};
+
 const SCHEME: &str = "view";
 const BASE: &str = "view://local/page";
 const PAGE: &[u8] = include_bytes!("vega-page.html");
@@ -71,6 +84,24 @@ fn main() -> wry::Result<()> {
         .with_decorations(true)
         .build(&event_loop)
         .unwrap();
+    
+    #[cfg(any(
+        target_os = "linux",
+        target_os = "dragonfly",
+        target_os = "freebsd",
+        target_os = "netbsd",
+        target_os = "openbsd",))]
+    let _webview = WebViewBuilder::new_gtk(unsafe {window.gtk_window().children()[0].unsafe_cast_ref::<gtk::Container>()})
+        .with_custom_protocol(SCHEME.to_string(), move |r| handler(log, &args, r))
+        .with_url(BASE)
+        .with_devtools(true)
+        .build()?;
+    #[cfg(not(any(
+        target_os = "linux",
+        target_os = "dragonfly",
+        target_os = "freebsd",
+        target_os = "netbsd",
+        target_os = "openbsd",)))]
     let _webview = WebViewBuilder::new(&window)
         .with_custom_protocol(SCHEME.to_string(), move |r| handler(log, &args, r))
         .with_url(BASE)
